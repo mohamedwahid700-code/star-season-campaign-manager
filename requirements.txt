@@ -1,0 +1,30 @@
+# Star Season Campaign Manager - Python dependencies
+# Target runtime: Python 3.13 (Windows 10/11)
+#
+# Install with:
+#   pip install -r requirements.txt
+
+# --- UI ---------------------------------------------------------------
+customtkinter==6.0.0
+darkdetect==0.8.0
+
+# --- Data / persistence -------------------------------------------------
+SQLAlchemy==2.0.51
+pandas==3.0.3
+openpyxl==3.1.5
+
+# --- Windows / Outlook integration --------------------------------------
+pywin32==306; sys_platform == "win32"
+
+# --- Templating / HTML ---------------------------------------------------
+Jinja2==3.1.6
+beautifulsoup4==4.15.0
+
+# --- Images ---------------------------------------------------------------
+Pillow==12.3.0
+
+# --- Configuration ----------------------------------------------------------
+python-dotenv==1.2.2
+
+# --- Packaging ----------------------------------------------------------------
+pyinstaller==6.21.0
