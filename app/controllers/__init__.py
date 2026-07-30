@@ -6,6 +6,7 @@ views can render. Views must never import a service or repository
 directly -- only a controller.
 """
 
+from app.controllers.bulk_send_controller import BulkSendController
 from app.controllers.campaign_controller import CampaignController
 from app.controllers.contact_controller import ContactController
 from app.controllers.dashboard_controller import DashboardController
@@ -15,6 +16,7 @@ from app.controllers.settings_controller import SettingsController
 from app.controllers.template_controller import TemplateController
 
 __all__ = [
+    "BulkSendController",
     "CampaignController",
     "ContactController",
     "DashboardController",

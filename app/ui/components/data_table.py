@@ -34,6 +34,7 @@ class DataTable(ctk.CTkFrame):
         on_sort: Callable[[str], None] | None = None,
         on_row_double_click: Callable[[str], None] | None = None,
         on_selection_change: Callable[[str | None], None] | None = None,
+        selectmode: str = "browse",
     ) -> None:
         """
         Parameters
@@ -46,7 +47,12 @@ class DataTable(ctk.CTkFrame):
             Called with the row's `iid` (its `str(id)`) on double-click.
         on_selection_change:
             Called with the selected row's `iid`, or `None` if the
-            selection was cleared.
+            selection was cleared. For `selectmode="extended"`, still
+            called on every selection change; use `get_selected_iids()`
+            to read the full multi-selection.
+        selectmode:
+            "browse" (default, single row) or "extended" (multi-select
+            via Ctrl/Shift-click, used by the recipient picker).
         """
         self._theme = theme_manager
         self._column_keys = [key for key, _, _ in columns]
@@ -65,7 +71,7 @@ class DataTable(ctk.CTkFrame):
             self,
             columns=self._column_keys,
             show="headings",
-            selectmode="browse",
+            selectmode=selectmode,
             style=self._style_name,
         )
         for key, label, width in columns:
@@ -126,6 +132,19 @@ class DataTable(ctk.CTkFrame):
     def get_selected_iid(self) -> str | None:
         selection = self.tree.selection()
         return selection[0] if selection else None
+
+    def get_selected_iids(self) -> list[str]:
+        """Return every currently-selected row's iid (for `selectmode='extended'`)."""
+        return list(self.tree.selection())
+
+    def select_all(self) -> None:
+        self.tree.selection_set(self.tree.get_children())
+
+    def clear_selection(self) -> None:
+        self.tree.selection_remove(self.tree.selection())
+
+    def get_all_iids(self) -> list[str]:
+        return list(self.tree.get_children())
 
     def _handle_sort(self, key: str) -> None:
         if self._on_sort:

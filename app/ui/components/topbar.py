@@ -2,10 +2,10 @@
 Top bar component.
 
 Displays the application identity, the signed-in Windows user, the
-active Outlook account (read from settings), a light/dark theme
-toggle, and a search box. The search box is present and styled per the
-Sprint 1 layout requirements but is not yet wired to any search logic --
-that arrives once Contacts/Campaigns have real data to search.
+live Outlook connection status, a light/dark theme toggle, and a
+search box. The search box is present and styled per the Sprint 1
+layout requirements but is not yet wired to any search logic -- that
+arrives once Contacts/Campaigns have real data to search.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ import getpass
 
 import customtkinter as ctk
 
+from app.controllers.outlook_controller import OutlookController
 from app.controllers.settings_controller import SettingsController
 from app.ui.theme.theme_manager import ThemeManager
 
@@ -25,11 +26,13 @@ class TopBar(ctk.CTkFrame):
         self,
         master: ctk.CTkBaseClass,
         settings_controller: SettingsController,
+        outlook_controller: OutlookController,
         theme_manager: ThemeManager,
         app_name: str,
         on_theme_toggle,
     ) -> None:
         self._settings_controller = settings_controller
+        self._outlook_controller = outlook_controller
         self._theme = theme_manager
         self._on_theme_toggle = on_theme_toggle
 
@@ -73,10 +76,6 @@ class TopBar(ctk.CTkFrame):
         right_frame.grid(row=0, column=2, sticky="e", padx=(12, 24))
 
         current_user = getpass.getuser()
-        outlook_account = self._settings_controller.get_snapshot().default_outlook_account
-        outlook_label_text = outlook_account if outlook_account else "Outlook: Not Connected"
-        if outlook_account:
-            outlook_label_text = f"Outlook: {outlook_account}"
 
         ctk.CTkLabel(
             right_frame,
@@ -87,11 +86,12 @@ class TopBar(ctk.CTkFrame):
 
         self._outlook_label = ctk.CTkLabel(
             right_frame,
-            text=outlook_label_text,
+            text="Outlook: Checking...",
             font=ctk.CTkFont(size=12),
             text_color=self._theme.color("text_secondary"),
         )
         self._outlook_label.pack(side="left", padx=(0, 16))
+        self.refresh_outlook_status()
 
         self._theme_switch = ctk.CTkSwitch(
             right_frame,
@@ -109,8 +109,24 @@ class TopBar(ctk.CTkFrame):
     def _handle_theme_toggle(self) -> None:
         self._on_theme_toggle()
 
-    def refresh_outlook_account(self) -> None:
-        """Re-read the default Outlook account from settings and update the label."""
-        outlook_account = self._settings_controller.get_snapshot().default_outlook_account
-        text = f"Outlook: {outlook_account}" if outlook_account else "Outlook: Not Connected"
-        self._outlook_label.configure(text=text)
+    def refresh_outlook_status(self) -> None:
+        """
+        Re-check the live Outlook connection state and update the
+        header label.
+
+        "Connected" means Outlook initialized successfully AND at least
+        one account was detected -- not merely that a default account
+        string happens to be saved in Settings, which could go stale
+        (e.g. Outlook was reinstalled, or the app is running on a
+        machine without Outlook at all).
+        """
+        accounts, error = self._outlook_controller.list_accounts()
+
+        if accounts:
+            text = f"Outlook: Connected ({len(accounts)} account{'s' if len(accounts) != 1 else ''})"
+            color = self._theme.color("success")
+        else:
+            text = "Outlook: Not Connected"
+            color = self._theme.color("text_secondary")
+
+        self._outlook_label.configure(text=text, text_color=color)

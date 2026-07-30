@@ -6,6 +6,7 @@ UI code depends on controllers, controllers depend on services,
 services depend on repositories -- never the reverse.
 """
 
+from app.services.bulk_send_service import BulkSendService
 from app.services.campaign_service import CampaignService
 from app.services.contact_import_export_service import ContactImportExportService
 from app.services.contact_service import ContactService
@@ -16,6 +17,7 @@ from app.services.template_rendering_service import TemplateRenderingService
 from app.services.template_service import TemplateService
 
 __all__ = [
+    "BulkSendService",
     "CampaignService",
     "ContactImportExportService",
     "ContactService",

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.models.campaign import Campaign
+from app.models.campaign import Campaign, CampaignStatus
 from app.models.contact import Contact
 from app.services.campaign_service import CampaignService
 from app.services.template_rendering_service import TemplateRenderingService
@@ -90,6 +90,9 @@ class CampaignController:
 
     def restore_campaign(self, campaign_id: int) -> Campaign:
         return self._campaign_service.restore_campaign(campaign_id)
+
+    def mark_campaign_status(self, campaign_id: int, status: CampaignStatus) -> Campaign:
+        return self._campaign_service.mark_status(campaign_id, status)
 
     def delete_campaign(self, campaign_id: int) -> bool:
         return self._campaign_service.delete_campaign(campaign_id)

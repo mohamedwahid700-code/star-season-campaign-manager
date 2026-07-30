@@ -24,6 +24,7 @@ from app.config.constants import (
 from app.controllers.campaign_controller import CampaignController
 from app.controllers.contact_controller import ContactController
 from app.controllers.dashboard_controller import DashboardController
+from app.controllers.history_controller import HistoryController
 from app.controllers.navigation_controller import NavigationController
 from app.controllers.outlook_controller import OutlookController
 from app.controllers.settings_controller import SettingsController
@@ -61,6 +62,7 @@ class MainWindow(ctk.CTk):
         self._campaign_controller = CampaignController()
         self._template_controller = TemplateController()
         self._outlook_controller = OutlookController(settings_service=self._settings_service)
+        self._history_controller = HistoryController()
         self._navigation_controller = NavigationController(initial_key=NavigationKey.DASHBOARD)
 
         self._theme = get_theme_manager()
@@ -127,6 +129,7 @@ class MainWindow(ctk.CTk):
         self._topbar = TopBar(
             self,
             settings_controller=self._settings_controller,
+            outlook_controller=self._outlook_controller,
             theme_manager=self._theme,
             app_name=__app_name__,
             on_theme_toggle=self._handle_theme_toggle,
@@ -146,16 +149,17 @@ class MainWindow(ctk.CTk):
             NavigationKey.DASHBOARD: DashboardView(self._content_container, self._dashboard_controller),
             NavigationKey.CAMPAIGNS: CampaignsView(
                 self._content_container, self._campaign_controller, self._contact_controller,
-                self._outlook_controller,
+                self._outlook_controller, self._settings_controller,
             ),
             NavigationKey.CONTACTS: ContactsView(self._content_container, self._contact_controller),
             NavigationKey.TEMPLATES: TemplatesView(
                 self._content_container, self._template_controller, self._contact_controller
             ),
-            NavigationKey.HISTORY: HistoryView(self._content_container),
+            NavigationKey.HISTORY: HistoryView(self._content_container, self._history_controller),
             NavigationKey.REPORTS: ReportsView(self._content_container),
             NavigationKey.SETTINGS: SettingsView(
-                self._content_container, self._settings_controller, self._theme
+                self._content_container, self._settings_controller, self._theme,
+                on_outlook_changed=self._topbar.refresh_outlook_status,
             ),
             NavigationKey.ABOUT: AboutView(self._content_container),
         }

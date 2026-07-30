@@ -14,7 +14,7 @@ pandas==3.0.3
 openpyxl==3.1.5
 
 # --- Windows / Outlook integration --------------------------------------
-pywin32==306; sys_platform == "win32"
+pywin32==312; sys_platform == "win32"
 
 # --- Templating / HTML ---------------------------------------------------
 Jinja2==3.1.6

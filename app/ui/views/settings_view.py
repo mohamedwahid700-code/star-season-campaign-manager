@@ -9,6 +9,8 @@ for the foundation sprint.
 
 from __future__ import annotations
 
+from typing import Callable
+
 import customtkinter as ctk
 
 from app.controllers.settings_controller import SettingsController
@@ -22,9 +24,11 @@ class SettingsView(BaseView):
         master: ctk.CTkBaseClass,
         settings_controller: SettingsController,
         theme_manager: ThemeManager,
+        on_outlook_changed: Callable[[], None] | None = None,
     ) -> None:
         self._controller = settings_controller
         self._theme_manager = theme_manager
+        self._on_outlook_changed = on_outlook_changed
 
         self._company_entry: ctk.CTkEntry | None = None
         self._language_menu: ctk.CTkOptionMenu | None = None
@@ -153,6 +157,9 @@ class SettingsView(BaseView):
             anchor="w",
         )
         self._outlook_status_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
+
+        if self._on_outlook_changed:
+            self._on_outlook_changed()
 
     def _get_selected_outlook_account(self) -> str:
         if self._outlook_menu is not None:

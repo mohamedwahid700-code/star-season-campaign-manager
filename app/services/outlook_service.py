@@ -148,8 +148,7 @@ class OutlookService:
         except Exception as exc:  # noqa: BLE001 - pywintypes.com_error or anything else
             logger.exception("Failed to connect to Outlook via COM.")
             raise OutlookConnectionError(
-                "Could not connect to Outlook. Make sure Outlook Classic is installed and try "
-                "opening it manually first."
+                f"Could not connect to Outlook: {exc}"
             ) from exc
 
     def _build_and_display_mail(self, subject: str, html_body: str, to_email: str, account_smtp: str):

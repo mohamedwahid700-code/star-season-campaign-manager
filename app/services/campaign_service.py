@@ -138,6 +138,16 @@ class CampaignService:
         logger.info("Campaign restored from archive: id=%s", campaign_id)
         return updated
 
+    def mark_status(self, campaign_id: int, status: CampaignStatus) -> Campaign:
+        """Set a campaign's status directly, e.g. RUNNING/COMPLETED around a bulk send."""
+        campaign = self._repository.get_by_id(campaign_id)
+        if campaign is None:
+            raise ValueError(f"Campaign with id={campaign_id} does not exist.")
+        campaign.status = status
+        updated = self._repository.update(campaign)
+        logger.info("Campaign status changed: id=%s status=%s", campaign_id, status.value)
+        return updated
+
     def delete_campaign(self, campaign_id: int) -> bool:
         deleted = self._repository.delete(campaign_id)
         if deleted:
