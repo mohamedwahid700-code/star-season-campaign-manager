@@ -42,6 +42,9 @@ class Contact(Base):
     history_entries: Mapped[list["History"]] = relationship(
         back_populates="contact", cascade="all, delete-orphan"
     )
+    exhibition_links: Mapped[list["ExhibitionContact"]] = relationship(
+        back_populates="contact", cascade="all, delete-orphan"
+    )
 
     @property
     def display_name(self) -> str:

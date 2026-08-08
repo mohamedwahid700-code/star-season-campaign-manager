@@ -9,6 +9,8 @@ from app.ui.dialogs.column_mapping_dialog import ColumnMappingDialog
 from app.ui.dialogs.contact_dialog import ContactDialog
 from app.ui.dialogs.contact_import_dialog import ContactImportDialog
 from app.ui.dialogs.contact_picker_dialog import ContactPickerDialog
+from app.ui.dialogs.exhibition_dialog import ExhibitionDialog
+from app.ui.dialogs.exhibition_import_dialog import ExhibitionImportDialog
 from app.ui.dialogs.outlook_send_test_dialog import OutlookSendTestDialog
 from app.ui.dialogs.recipient_selection_dialog import RecipientSelectionDialog
 from app.ui.dialogs.send_progress_dialog import SendProgressDialog
@@ -20,6 +22,8 @@ __all__ = [
     "ContactDialog",
     "ContactImportDialog",
     "ContactPickerDialog",
+    "ExhibitionDialog",
+    "ExhibitionImportDialog",
     "OutlookSendTestDialog",
     "RecipientSelectionDialog",
     "SendProgressDialog",

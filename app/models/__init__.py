@@ -12,7 +12,10 @@ failed to locate a name` errors at runtime.
 from app.models.blacklist import Blacklist
 from app.models.campaign import Campaign, CampaignStatus
 from app.models.contact import Contact
+from app.models.exhibition import Exhibition
+from app.models.exhibition_contact import ExhibitionContact
 from app.models.history import DeliveryStatus, History
+from app.models.lead_stage import LeadStage
 from app.models.log import Log
 from app.models.setting import Setting
 from app.models.template import Template
@@ -23,7 +26,10 @@ __all__ = [
     "CampaignStatus",
     "Contact",
     "DeliveryStatus",
+    "Exhibition",
+    "ExhibitionContact",
     "History",
+    "LeadStage",
     "Log",
     "Setting",
     "Template",

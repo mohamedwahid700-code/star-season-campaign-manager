@@ -14,6 +14,7 @@ class NavigationKey(str, Enum):
     """Identifiers for every navigable page in the main window."""
 
     DASHBOARD = "dashboard"
+    EXHIBITIONS = "exhibitions"
     CAMPAIGNS = "campaigns"
     CONTACTS = "contacts"
     TEMPLATES = "templates"
@@ -25,6 +26,7 @@ class NavigationKey(str, Enum):
 
 NAVIGATION_LABELS: dict[NavigationKey, str] = {
     NavigationKey.DASHBOARD: "Dashboard",
+    NavigationKey.EXHIBITIONS: "Exhibitions",
     NavigationKey.CAMPAIGNS: "Campaigns",
     NavigationKey.CONTACTS: "Contacts",
     NavigationKey.TEMPLATES: "Templates",
@@ -37,6 +39,7 @@ NAVIGATION_LABELS: dict[NavigationKey, str] = {
 # Ordered navigation for the sidebar (top to bottom).
 NAVIGATION_ORDER: list[NavigationKey] = [
     NavigationKey.DASHBOARD,
+    NavigationKey.EXHIBITIONS,
     NavigationKey.CAMPAIGNS,
     NavigationKey.CONTACTS,
     NavigationKey.TEMPLATES,

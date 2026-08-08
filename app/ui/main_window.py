@@ -24,6 +24,8 @@ from app.config.constants import (
 from app.controllers.campaign_controller import CampaignController
 from app.controllers.contact_controller import ContactController
 from app.controllers.dashboard_controller import DashboardController
+from app.controllers.exhibition_contact_controller import ExhibitionContactController
+from app.controllers.exhibition_controller import ExhibitionController
 from app.controllers.history_controller import HistoryController
 from app.controllers.navigation_controller import NavigationController
 from app.controllers.outlook_controller import OutlookController
@@ -40,6 +42,7 @@ from app.ui.views.base_view import BaseView
 from app.ui.views.campaigns_view import CampaignsView
 from app.ui.views.contacts_view import ContactsView
 from app.ui.views.dashboard_view import DashboardView
+from app.ui.views.exhibitions_view import ExhibitionsView
 from app.ui.views.history_view import HistoryView
 from app.ui.views.reports_view import ReportsView
 from app.ui.views.settings_view import SettingsView
@@ -63,6 +66,8 @@ class MainWindow(ctk.CTk):
         self._template_controller = TemplateController()
         self._outlook_controller = OutlookController(settings_service=self._settings_service)
         self._history_controller = HistoryController()
+        self._exhibition_controller = ExhibitionController()
+        self._exhibition_contact_controller = ExhibitionContactController()
         self._navigation_controller = NavigationController(initial_key=NavigationKey.DASHBOARD)
 
         self._theme = get_theme_manager()
@@ -147,6 +152,9 @@ class MainWindow(ctk.CTk):
     def _register_views(self) -> None:
         self._views: dict[NavigationKey, BaseView] = {
             NavigationKey.DASHBOARD: DashboardView(self._content_container, self._dashboard_controller),
+            NavigationKey.EXHIBITIONS: ExhibitionsView(
+                self._content_container, self._exhibition_controller, self._exhibition_contact_controller,
+            ),
             NavigationKey.CAMPAIGNS: CampaignsView(
                 self._content_container, self._campaign_controller, self._contact_controller,
                 self._outlook_controller, self._settings_controller,

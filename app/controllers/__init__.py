@@ -10,6 +10,8 @@ from app.controllers.bulk_send_controller import BulkSendController
 from app.controllers.campaign_controller import CampaignController
 from app.controllers.contact_controller import ContactController
 from app.controllers.dashboard_controller import DashboardController
+from app.controllers.exhibition_contact_controller import ExhibitionContactController
+from app.controllers.exhibition_controller import ExhibitionController
 from app.controllers.navigation_controller import NavigationController
 from app.controllers.outlook_controller import OutlookController
 from app.controllers.settings_controller import SettingsController
@@ -20,6 +22,8 @@ __all__ = [
     "CampaignController",
     "ContactController",
     "DashboardController",
+    "ExhibitionContactController",
+    "ExhibitionController",
     "NavigationController",
     "OutlookController",
     "SettingsController",

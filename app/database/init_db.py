@@ -24,13 +24,20 @@ import app.models  # noqa: F401
 from app.config.constants import DEFAULT_SETTINGS
 from app.database.base import Base, get_engine, session_scope
 from app.database.migrations import run_migrations
+from app.models.lead_stage import LeadStage
 from app.models.setting import Setting
 
 logger = logging.getLogger(__name__)
 
+# The single default stage a new ExhibitionContact lands in. Full stage
+# management (adding/reordering/deleting stages) is out of scope for
+# this milestone -- this is the one seeded row LeadStage needs to exist
+# as a persisted model rather than a hard-coded enum.
+DEFAULT_LEAD_STAGE_NAME = "New"
+
 
 def initialize_database() -> None:
-    """Create all tables (if missing), migrate existing ones, and seed default settings."""
+    """Create all tables (if missing), migrate existing ones, and seed default rows."""
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
     logger.info("Database schema verified/created.")
@@ -38,6 +45,17 @@ def initialize_database() -> None:
     run_migrations(engine)
 
     _seed_default_settings()
+    _seed_default_lead_stage()
+
+
+def _seed_default_lead_stage() -> None:
+    """Insert the single default LeadStage ("New") on first run only."""
+    with session_scope() as session:
+        existing = session.query(LeadStage).filter(LeadStage.name == DEFAULT_LEAD_STAGE_NAME).first()
+        if existing is not None:
+            return
+        session.add(LeadStage(name=DEFAULT_LEAD_STAGE_NAME, sort_order=0, is_default=True))
+        logger.info("Seeded default lead stage: %s", DEFAULT_LEAD_STAGE_NAME)
 
 
 def _seed_default_settings() -> None:

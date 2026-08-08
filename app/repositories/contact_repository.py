@@ -48,6 +48,23 @@ class ContactRepository(BaseRepository[Contact]):
             )
             return {row.email for row in rows}
 
+    def get_contact_ids_by_emails(self, emails: list[str]) -> dict[str, int]:
+        """Return {email: contact_id} for every one of `emails` that already exists.
+
+        Used by the exhibition-scoped import to tell "reuse this existing
+        global Contact" apart from "this email is brand new", in a single
+        query rather than one lookup per row.
+        """
+        if not emails:
+            return {}
+        with session_scope() as session:
+            rows = (
+                session.query(Contact.id, Contact.email)
+                .filter(Contact.email.in_(emails))
+                .all()
+            )
+            return {row.email: row.id for row in rows}
+
     def bulk_add(self, contacts: list[Contact]) -> int:
         """Insert many contacts in a single transaction. Returns the number inserted."""
         if not contacts:
