@@ -37,6 +37,18 @@ class Campaign(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     event_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # The real, first-class relationship a campaign's recipients are
+    # resolved through (via ExhibitionContact). `event_name` above is
+    # legacy free text and is no longer the primary link -- it is kept
+    # only so existing campaigns/history stay readable. Nullable so
+    # older campaigns created before this field existed keep loading
+    # normally and fall back to the legacy "All Contacts" recipient
+    # flow.
+    exhibition_id: Mapped[int | None] = mapped_column(
+        ForeignKey("exhibitions.id", ondelete="SET NULL"), nullable=True
+    )
+
     language: Mapped[str] = mapped_column(String(50), nullable=False, default="English")
     subject: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     html_body: Mapped[str] = mapped_column(Text, nullable=False, default="")
@@ -64,6 +76,9 @@ class Campaign(Base):
     history_entries: Mapped[list["History"]] = relationship(
         back_populates="campaign", cascade="all, delete-orphan"
     )
+    # One-directional: Exhibition does not need a `campaigns` back-reference
+    # for this milestone, so its model is left untouched.
+    exhibition: Mapped["Exhibition | None"] = relationship(viewonly=False)
 
     def __repr__(self) -> str:  # pragma: no cover - debug convenience only
         return f"<Campaign id={self.id} name={self.name!r} status={self.status.value}>"

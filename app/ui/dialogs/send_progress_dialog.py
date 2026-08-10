@@ -186,12 +186,19 @@ class SendProgressDialog(BaseDialog):
         self._remaining_value_label.configure(text=str(max(self._total - processed, 0)))
 
         if event.kind == "sending" and event.contact is not None:
+            account_suffix = f" via {event.account}" if event.account else ""
             self._current_recipient_label.configure(
-                text=f"Sending to {event.contact.display_name} <{event.contact.email}>"
+                text=f"Sending to {event.contact.display_name} <{event.contact.email}>{account_suffix}"
+            )
+        elif event.kind == "sent" and event.contact is not None:
+            account_suffix = f" via {event.account}" if event.account else ""
+            self._current_recipient_label.configure(
+                text=f"Sent to {event.contact.display_name} <{event.contact.email}>{account_suffix}"
             )
         elif event.kind == "failed" and event.contact is not None:
+            account_suffix = f" [{event.account}]" if event.account else ""
             self._current_recipient_label.configure(
-                text=f"Failed: {event.contact.email} -- {event.error_message}"
+                text=f"Failed: {event.contact.email}{account_suffix} -- {event.error_message}"
             )
         elif event.kind == "done":
             self._finish(f"Done. Sent {event.sent_count}, failed {event.failed_count}.")

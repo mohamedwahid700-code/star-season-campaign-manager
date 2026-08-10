@@ -26,6 +26,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Callable, Literal
 
 from app.models.campaign import Campaign
@@ -53,6 +54,11 @@ class BulkSendEvent:
     sent_count: int
     failed_count: int
     error_message: str = ""
+    # The sender account this recipient was (or is about to be) sent
+    # from -- resolved via round-robin across every account selected
+    # for the campaign. Empty string for events with no associated
+    # recipient (e.g. "done"/"cancelled").
+    account: str = ""
 
 
 @dataclass(frozen=True)
@@ -78,7 +84,7 @@ class BulkSendService:
         self,
         campaign: Campaign,
         contacts: list[Contact],
-        account_smtp: str,
+        account_smtps: list[str],
         delay_seconds: float,
         pause_event: threading.Event,
         cancel_event: threading.Event,
@@ -87,14 +93,32 @@ class BulkSendService:
         """
         Send `campaign` to every contact in `contacts`, one at a time.
 
+        `account_smtps` is one or more configured Outlook sender accounts.
+        With a single account, every recipient sends from it -- identical
+        to the original single-account behavior. With multiple accounts,
+        recipients are distributed round-robin (account[0] -> recipient 1,
+        account[1] -> recipient 2, ..., wrapping back to account[0]), which
+        is deterministic for a given `contacts` ordering and `account_smtps`
+        list, so re-running the same campaign against the same recipient
+        list always produces the same assignment.
+
+        A per-recipient Outlook failure is recorded (History + a "failed"
+        progress event) and the loop continues to the next recipient --
+        one bad address never aborts the rest of the campaign.
+
         Safe to call directly (e.g. in tests) without a real thread --
         it simply runs to completion or until `cancel_event` is set.
         """
+        if not account_smtps:
+            raise ValueError("send_campaign requires at least one sender account.")
+
         total = len(contacts)
         sent_count = 0
         failed_count = 0
 
         for index, contact in enumerate(contacts, start=1):
+            account_smtp = account_smtps[(index - 1) % len(account_smtps)]
+
             if cancel_event.is_set():
                 on_progress(
                     BulkSendEvent("cancelled", index, total, None, sent_count, failed_count)
@@ -108,36 +132,70 @@ class BulkSendService:
                 )
                 return BulkSendSummary(total, sent_count, failed_count, cancelled=True)
 
-            on_progress(BulkSendEvent("sending", index, total, contact, sent_count, failed_count))
-
-            subject = self._rendering_service.render(campaign.subject, contact, campaign)
-            html_body = self._rendering_service.render(campaign.html_body, contact, campaign)
-
-            result = self._outlook_service.send_test_email(subject, html_body, contact.email, account_smtp)
-
-            self._history_repository.add(
-                History(
-                    campaign_id=campaign.id,
-                    contact_id=contact.id,
-                    subject=subject,
-                    status=DeliveryStatus.SENT if result.success else DeliveryStatus.FAILED,
-                    error_message=result.error_message,
-                    sender_account=account_smtp,
-                    sent_at=result.sent_at,
+            on_progress(
+                BulkSendEvent(
+                    "sending", index, total, contact, sent_count, failed_count, account=account_smtp
                 )
             )
 
-            if result.success:
-                sent_count += 1
-                on_progress(BulkSendEvent("sent", index, total, contact, sent_count, failed_count))
-            else:
+            try:
+                subject = self._rendering_service.render(campaign.subject, contact, campaign)
+                html_body = self._rendering_service.render(campaign.html_body, contact, campaign)
+
+                if not contact.email or "@" not in contact.email:
+                    raise ValueError(f"Contact id={contact.id} has no usable email address.")
+
+                result = self._outlook_service.send_test_email(subject, html_body, contact.email, account_smtp)
+            except Exception as exc:  # noqa: BLE001 - one bad recipient must never abort the run
+                logger.exception(
+                    "Unexpected error sending to contact_id=%s during bulk send.", contact.id
+                )
                 failed_count += 1
+                self._history_repository.add(
+                    History(
+                        campaign_id=campaign.id,
+                        contact_id=contact.id,
+                        subject=campaign.subject,
+                        status=DeliveryStatus.FAILED,
+                        error_message=str(exc),
+                        sender_account=account_smtp,
+                        sent_at=datetime.now(),
+                    )
+                )
                 on_progress(
                     BulkSendEvent(
                         "failed", index, total, contact, sent_count, failed_count,
-                        error_message=result.error_message,
+                        error_message=str(exc), account=account_smtp,
                     )
                 )
+            else:
+                self._history_repository.add(
+                    History(
+                        campaign_id=campaign.id,
+                        contact_id=contact.id,
+                        subject=subject,
+                        status=DeliveryStatus.SENT if result.success else DeliveryStatus.FAILED,
+                        error_message=result.error_message,
+                        sender_account=account_smtp,
+                        sent_at=result.sent_at,
+                    )
+                )
+
+                if result.success:
+                    sent_count += 1
+                    on_progress(
+                        BulkSendEvent(
+                            "sent", index, total, contact, sent_count, failed_count, account=account_smtp
+                        )
+                    )
+                else:
+                    failed_count += 1
+                    on_progress(
+                        BulkSendEvent(
+                            "failed", index, total, contact, sent_count, failed_count,
+                            error_message=result.error_message, account=account_smtp,
+                        )
+                    )
 
             if index < total and delay_seconds > 0:
                 if self._sleep_with_cancel_check(delay_seconds, cancel_event):

@@ -17,6 +17,7 @@ import customtkinter as ctk
 from app.config.constants import CAMPAIGN_LANGUAGES
 from app.controllers.campaign_controller import CampaignController, CampaignFormData
 from app.controllers.contact_controller import ContactController
+from app.controllers.exhibition_controller import ExhibitionController
 from app.models.campaign import Campaign
 from app.ui.components.html_editor import HtmlEditor
 from app.ui.components.variables_panel import build_variables_panel
@@ -35,13 +36,16 @@ class CampaignDialog(ctk.CTkToplevel):
         contact_controller: ContactController,
         on_saved: Callable[[], None],
         campaign: Campaign | None = None,
+        exhibition_controller: ExhibitionController | None = None,
     ) -> None:
         super().__init__(master, fg_color=theme_manager.color("background"))
         self._theme = theme_manager
         self._controller = campaign_controller
         self._contact_controller = contact_controller
+        self._exhibition_controller = exhibition_controller or ExhibitionController()
         self._on_saved = on_saved
         self._campaign = campaign
+        self._exhibitions = self._exhibition_controller.list_exhibitions()
 
         self.title("Edit Campaign" if campaign else "New Campaign")
         self.transient(master)
@@ -62,6 +66,10 @@ class CampaignDialog(ctk.CTkToplevel):
             self._language_menu.set(campaign.language)
             self._subject_entry.insert(0, campaign.subject)
             self.editor.load_html(campaign.html_body)
+            if campaign.exhibition_id is not None:
+                matching = next((e for e in self._exhibitions if e.id == campaign.exhibition_id), None)
+                if matching is not None:
+                    self._exhibition_menu.set(matching.name)
         else:
             self._maybe_offer_template_picker()
 
@@ -98,6 +106,11 @@ class CampaignDialog(ctk.CTkToplevel):
         add_label("Subject", 1, 2)
         self._subject_entry = ctk.CTkEntry(header, height=34)
         self._subject_entry.grid(row=1, column=3, sticky="ew", padx=(0, 16), pady=(0, 10))
+
+        add_label("Exhibition", 2, 0)
+        exhibition_names = ["(None -- send to all Contacts)"] + [e.name for e in self._exhibitions]
+        self._exhibition_menu = ctk.CTkOptionMenu(header, values=exhibition_names, height=34)
+        self._exhibition_menu.grid(row=2, column=1, sticky="w", padx=(0, 16), pady=(0, 10))
 
     def _build_editor_area(self) -> None:
         body = ctk.CTkFrame(self, fg_color="transparent")
@@ -152,7 +165,7 @@ class CampaignDialog(ctk.CTkToplevel):
             return
 
         picker_row = ctk.CTkFrame(self._header, fg_color=self._theme.color("surface_alt"), corner_radius=6)
-        picker_row.grid(row=2, column=0, columnspan=4, sticky="ew", padx=16, pady=(0, 14))
+        picker_row.grid(row=3, column=0, columnspan=4, sticky="ew", padx=16, pady=(0, 14))
 
         ctk.CTkLabel(
             picker_row, text="Start from a template:",
@@ -200,9 +213,15 @@ class CampaignDialog(ctk.CTkToplevel):
             self._status_label.configure(text="Campaign name is required.")
             return
 
+        selected_exhibition_name = self._exhibition_menu.get()
+        exhibition_id = next(
+            (e.id for e in self._exhibitions if e.name == selected_exhibition_name), None
+        )
+
         data = CampaignFormData(
             name=name,
             event_name=self._event_entry.get().strip(),
+            exhibition_id=exhibition_id,
             language=self._language_menu.get(),
             subject=self._subject_entry.get().strip(),
             html_body=self.editor.to_html(),

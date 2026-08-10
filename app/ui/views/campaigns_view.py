@@ -12,6 +12,8 @@ import customtkinter as ctk
 from app.controllers.bulk_send_controller import BulkSendController
 from app.controllers.campaign_controller import CampaignController
 from app.controllers.contact_controller import ContactController
+from app.controllers.exhibition_contact_controller import ExhibitionContactController
+from app.controllers.exhibition_controller import ExhibitionController
 from app.controllers.outlook_controller import OutlookController
 from app.controllers.settings_controller import SettingsController
 from app.models.campaign import CampaignStatus
@@ -21,6 +23,7 @@ from app.ui.dialogs.campaign_dialog import CampaignDialog
 from app.ui.dialogs.outlook_send_test_dialog import OutlookSendTestDialog
 from app.ui.dialogs.recipient_selection_dialog import RecipientSelectionDialog
 from app.ui.dialogs.send_progress_dialog import SendProgressDialog
+from app.ui.dialogs.sender_account_selection_dialog import SenderAccountSelectionDialog
 from app.ui.views.base_view import BaseView
 
 _COLUMNS = [
@@ -50,11 +53,15 @@ class CampaignsView(BaseView):
         contact_controller: ContactController,
         outlook_controller: OutlookController,
         settings_controller: SettingsController,
+        exhibition_controller: ExhibitionController | None = None,
+        exhibition_contact_controller: ExhibitionContactController | None = None,
     ) -> None:
         self._controller = campaign_controller
         self._contact_controller = contact_controller
         self._outlook_controller = outlook_controller
         self._settings_controller = settings_controller
+        self._exhibition_controller = exhibition_controller or ExhibitionController()
+        self._exhibition_contact_controller = exhibition_contact_controller or ExhibitionContactController()
         self._selected_campaign_id: int | None = None
         self._show_archived = False
         super().__init__(master, title="Campaigns", subtitle="Create and manage your email campaigns.")
@@ -180,7 +187,10 @@ class CampaignsView(BaseView):
         self._open_edit_dialog(int(iid))
 
     def _handle_add(self) -> None:
-        CampaignDialog(self, self.theme, self._controller, self._contact_controller, on_saved=self.refresh)
+        CampaignDialog(
+            self, self.theme, self._controller, self._contact_controller, on_saved=self.refresh,
+            exhibition_controller=self._exhibition_controller,
+        )
 
     def _handle_edit_selected(self) -> None:
         if self._selected_campaign_id is not None:
@@ -192,7 +202,7 @@ class CampaignsView(BaseView):
             return
         CampaignDialog(
             self, self.theme, self._controller, self._contact_controller,
-            on_saved=self.refresh, campaign=campaign,
+            on_saved=self.refresh, campaign=campaign, exhibition_controller=self._exhibition_controller,
         )
 
     def _handle_duplicate_selected(self) -> None:
@@ -219,29 +229,36 @@ class CampaignsView(BaseView):
         if campaign is None:
             return
 
-        account = self._outlook_controller.get_default_account()
-        if not account:
-            ask_confirm(
-                self, self.theme, title="No Outlook Account",
-                message="Set a default Outlook account in Settings before sending a campaign.",
-                on_confirm=lambda: None, confirm_text="OK", danger=False,
-            )
-            return
-
         def on_recipients_chosen(contacts) -> None:
-            self._confirm_and_send(campaign, contacts, account)
+            if not contacts:
+                return
 
-        RecipientSelectionDialog(self, self.theme, self._contact_controller, on_confirm=on_recipients_chosen)
+            def on_accounts_chosen(account_smtps: list[str]) -> None:
+                self._confirm_and_send(campaign, contacts, account_smtps)
 
-    def _confirm_and_send(self, campaign, contacts, account: str) -> None:
+            SenderAccountSelectionDialog(
+                self, self.theme, self._outlook_controller, on_confirm=on_accounts_chosen,
+            )
+
+        RecipientSelectionDialog(
+            self, self.theme, self._contact_controller, on_confirm=on_recipients_chosen,
+            campaign=campaign, exhibition_contact_controller=self._exhibition_contact_controller,
+        )
+
+    def _confirm_and_send(self, campaign, contacts, account_smtps: list[str]) -> None:
         recipient_count = len(contacts)
+
+        if len(account_smtps) == 1:
+            account_summary = account_smtps[0]
+        else:
+            account_summary = f"{len(account_smtps)} accounts (round-robin)"
 
         def start_sending() -> None:
             delay_seconds = self._settings_controller.get_snapshot().default_delay_seconds
             self._controller.mark_campaign_status(campaign.id, CampaignStatus.RUNNING)
 
             bulk_send_controller = BulkSendController()
-            bulk_send_controller.start(campaign, contacts, account, delay_seconds)
+            bulk_send_controller.start(campaign, contacts, account_smtps, delay_seconds)
 
             def on_finished() -> None:
                 summary = bulk_send_controller.get_summary()
@@ -260,7 +277,7 @@ class CampaignsView(BaseView):
             self, self.theme, title="Send Campaign",
             message=(
                 f"Send '{campaign.name}' to {recipient_count} recipient"
-                f"{'s' if recipient_count != 1 else ''} from {account}?"
+                f"{'s' if recipient_count != 1 else ''} from {account_summary}?"
             ),
             on_confirm=start_sending, confirm_text="Send", danger=False,
         )

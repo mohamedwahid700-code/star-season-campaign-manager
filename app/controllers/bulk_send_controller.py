@@ -55,10 +55,14 @@ class BulkSendController:
         self,
         campaign: Campaign,
         contacts: list[Contact],
-        account_smtp: str,
+        account_smtps: list[str],
         delay_seconds: float,
     ) -> None:
-        """Start sending on a background thread. Only one send runs at a time per controller instance."""
+        """Start sending on a background thread. Only one send runs at a time per controller instance.
+
+        `account_smtps` is one or more sender accounts; with more than
+        one, `BulkSendService` distributes recipients round-robin.
+        """
         self._pause_event.clear()
         self._cancel_event.clear()
         self._summary = None
@@ -73,7 +77,7 @@ class BulkSendController:
                 summary = self._service.send_campaign(
                     campaign=campaign,
                     contacts=contacts,
-                    account_smtp=account_smtp,
+                    account_smtps=account_smtps,
                     delay_seconds=delay_seconds,
                     pause_event=self._pause_event,
                     cancel_event=self._cancel_event,

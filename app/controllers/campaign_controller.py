@@ -25,6 +25,7 @@ class CampaignFormData:
 
     name: str
     event_name: str = ""
+    exhibition_id: int | None = None
     language: str = "English"
     subject: str = ""
     html_body: str = ""
@@ -64,6 +65,7 @@ class CampaignController:
         return self._campaign_service.create_campaign(
             name=data.name,
             event_name=data.event_name,
+            exhibition_id=data.exhibition_id,
             language=data.language,
             subject=data.subject,
             html_body=data.html_body,
@@ -77,6 +79,7 @@ class CampaignController:
             campaign_id,
             name=data.name,
             event_name=data.event_name,
+            exhibition_id=data.exhibition_id,
             language=data.language,
             subject=data.subject,
             html_body=data.html_body,

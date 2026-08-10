@@ -49,10 +49,12 @@ class CampaignService:
         subject: str = "",
         html_body: str = "",
         template_id: int | None = None,
+        exhibition_id: int | None = None,
     ) -> Campaign:
         campaign = Campaign(
             name=name.strip(),
             event_name=event_name.strip() or None,
+            exhibition_id=exhibition_id,
             language=language,
             subject=subject,
             html_body=html_body,
@@ -84,6 +86,7 @@ class CampaignService:
         language: str = "English",
         subject: str = "",
         html_body: str = "",
+        exhibition_id: int | None = None,
     ) -> Campaign:
         campaign = self._repository.get_by_id(campaign_id)
         if campaign is None:
@@ -91,6 +94,7 @@ class CampaignService:
 
         campaign.name = name.strip()
         campaign.event_name = event_name.strip() or None
+        campaign.exhibition_id = exhibition_id
         campaign.language = language
         campaign.subject = subject
         campaign.html_body = html_body
@@ -109,6 +113,7 @@ class CampaignService:
             name=f"{source.name} (Copy)",
             description=source.description,
             event_name=source.event_name,
+            exhibition_id=source.exhibition_id,
             language=source.language,
             subject=source.subject,
             html_body=source.html_body,

@@ -38,6 +38,7 @@ def run_migrations(engine: Engine) -> None:
     _migrate_contacts_table(engine)
     _migrate_campaigns_table(engine)
     _migrate_history_table(engine)
+    _migrate_campaigns_exhibition_id(engine)
     logger.info("Schema migrations complete.")
 
 
@@ -140,3 +141,22 @@ def _migrate_history_table(engine: Engine) -> None:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE history ADD COLUMN sender_account VARCHAR(255)"))
             logger.info("Migration: added history.sender_account")
+
+
+def _migrate_campaigns_exhibition_id(engine: Engine) -> None:
+    """
+    Production Bulk Email Engine: campaigns are now scoped to a real
+    Exhibition via `exhibition_id`, instead of the free-text
+    `event_name` column. Added nullable so every existing campaign
+    keeps loading unchanged and simply falls back to the legacy
+    "All Contacts" recipient flow until it is explicitly assigned to
+    an Exhibition.
+    """
+    columns = _existing_columns(engine, "campaigns")
+    if not columns:
+        return
+
+    if "exhibition_id" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE campaigns ADD COLUMN exhibition_id INTEGER"))
+            logger.info("Migration: added campaigns.exhibition_id")

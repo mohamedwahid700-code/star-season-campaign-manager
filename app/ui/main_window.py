@@ -158,6 +158,8 @@ class MainWindow(ctk.CTk):
             NavigationKey.CAMPAIGNS: CampaignsView(
                 self._content_container, self._campaign_controller, self._contact_controller,
                 self._outlook_controller, self._settings_controller,
+                exhibition_controller=self._exhibition_controller,
+                exhibition_contact_controller=self._exhibition_contact_controller,
             ),
             NavigationKey.CONTACTS: ContactsView(self._content_container, self._contact_controller),
             NavigationKey.TEMPLATES: TemplatesView(
