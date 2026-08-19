@@ -27,6 +27,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 try:
+    import pythoncom
     import pywintypes
     import win32com.client
 
@@ -174,7 +175,7 @@ class OutlookService:
                 raise OutlookSendError(
                     f"Account '{account_smtp}' was not found in this Outlook profile."
                 )
-            mail_item.SendUsingAccount = account_obj
+            mail_item._oleobj_.Invoke(*(64209, 0, 8, 0, account_obj))
 
             mail_item.To = to_email
             mail_item.Subject = subject
@@ -186,6 +187,12 @@ class OutlookService:
             mail_item.Display()
             signature_html = mail_item.HTMLBody or ""
             mail_item.HTMLBody = f"{html_body}<br>{signature_html}"
+
+            # Outlook Classic can reset the sending account to the
+            # profile default while Display() initializes the Inspector.
+            # Reapply the hidden SetSendAccount dispatch method before
+            # the preview remains open or the caller invokes Send().
+            mail_item._oleobj_.Invoke(*(64209, 0, 8, 0, account_obj))
 
             return mail_item
         except OutlookServiceError:
